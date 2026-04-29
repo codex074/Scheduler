@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model TeamMember {
+  id              String   @id @default(cuid())
+  nickname        String   @unique
+  phaId           String   @unique @map("pha_id")
+  dateOfBirth     DateTime @map("date_of_birth")
+  pregnancyStatus String?  @map("pregnancy_status")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  assignments ShiftAssignment[]
+
+  @@map("team_members")
+}
+
+model PublicHoliday {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("public_holidays")
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  year      Int
+  month     Int
+  status    String   @default("draft")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  assignments ShiftAssignment[]
+
+  @@unique([year, month])
+  @@map("schedules")
+}
+
+model ShiftAssignment {
+  id         String   @id @default(cuid())
+  scheduleId String   @map("schedule_id")
+  memberId   String   @map("member_id")
+  date       DateTime
+  shiftType  String   @map("shift_type")
+
+  schedule Schedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  member   TeamMember @relation(fields: [memberId], references: [id])
+
+  @@index([scheduleId, date])
+  @@index([memberId, date])
+  @@map("shift_assignments")
+}
