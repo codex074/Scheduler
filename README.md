@@ -24,6 +24,14 @@ docker compose up --build
 
 จากนั้นเปิด [http://localhost:3000](http://localhost:3000)
 
+ถ้า port `3000` ถูกใช้อยู่แล้ว ให้เปลี่ยน port หน้าเครื่อง เช่น:
+
+```bash
+APP_PORT=3001 docker compose up --build
+```
+
+แล้วเปิด [http://localhost:3001](http://localhost:3001)
+
 ## สิ่งที่ต้องติดตั้งก่อน
 
 ### สำหรับทุกคน
@@ -109,6 +117,12 @@ cd Scheduler
 
 ```bash
 docker compose up --build
+```
+
+ถ้า port `3000` ชนกับโปรแกรมอื่น:
+
+```bash
+APP_PORT=3001 docker compose up --build
 ```
 
 ระบบจะทำสิ่งต่อไปนี้ให้อัตโนมัติ:
@@ -455,6 +469,7 @@ npm run db:studio
 ```bash
 docker compose up --build
 docker compose up --build -d
+APP_PORT=3001 docker compose up --build -d
 docker compose logs -f
 docker compose down
 docker compose down -v
@@ -502,6 +517,12 @@ npm test
 - เครื่องมี Docker ทำงานอยู่จริง
 - port `3000` ไม่ถูกโปรแกรมอื่นใช้อยู่
 - ใช้คำสั่ง `docker compose logs -f` แล้วไม่มี error ตอน start
+
+ถ้า port `3000` ถูกใช้อยู่ ให้รันด้วย port อื่น:
+
+```bash
+APP_PORT=3001 docker compose up --build -d
+```
 
 ### เปลี่ยนโค้ดแล้วหน้าเว็บยังไม่อัปเดต
 
