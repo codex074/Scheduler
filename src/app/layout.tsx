@@ -1,15 +1,8 @@
 import type { Metadata } from 'next';
-import { Sarabun } from 'next/font/google';
 import './globals.css';
 import { Sidebar } from '@/components/Sidebar';
 import { QueryProvider } from '@/components/QueryProvider';
 import { Toaster } from 'sonner';
-
-const sarabun = Sarabun({
-  weight: ['300', '400', '500', '600', '700'],
-  subsets: ['thai', 'latin'],
-  variable: '--font-sans',
-});
 
 export const metadata: Metadata = {
   title: 'จัดตารางเวรห้องยา',
@@ -20,7 +13,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="th" className={`${sarabun.variable} h-full antialiased`}>
+    <html lang="th" className="h-full antialiased">
       <body className="min-h-full bg-slate-50 text-slate-900 font-sans">
         <QueryProvider>
           <div className="flex min-h-screen">

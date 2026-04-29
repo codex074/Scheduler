@@ -12,6 +12,68 @@
 - ปรับสมดุลภาระงานให้ใกล้เคียงกันที่สุด
 - รองรับการ `Import` / `Export` ข้อมูลเพื่อทำงานต่อใน Excel
 
+## วิธีเริ่มต้นแบบเร็วที่สุด
+
+ถ้าต้องการใช้งานแบบ `clone แล้วเปิดได้เลย` แนะนำให้ใช้ Docker
+
+```bash
+git clone https://github.com/codex074/Scheduler.git
+cd Scheduler
+docker compose up --build
+```
+
+จากนั้นเปิด [http://localhost:3000](http://localhost:3000)
+
+## สิ่งที่ต้องติดตั้งก่อน
+
+### สำหรับทุกคน
+
+- `Git`
+- เลือกอย่างใดอย่างหนึ่ง:
+  - `Docker Desktop` หรือ `Docker Engine`
+  - `Node.js 20+` ถ้าต้องการรันแบบ local โดยไม่ใช้ Docker
+
+### ติดตั้ง Git
+
+#### macOS
+
+ติดตั้งผ่าน Homebrew:
+
+```bash
+brew install git
+```
+
+หรือถ้ามี Xcode Command Line Tools อยู่แล้ว มักจะมี Git พร้อมใช้งาน
+
+#### Windows
+
+ติดตั้ง [Git for Windows](https://git-scm.com/download/win)
+
+#### Linux (Ubuntu/Debian)
+
+```bash
+sudo apt update
+sudo apt install -y git
+```
+
+### ติดตั้ง Docker
+
+#### macOS / Windows
+
+ติดตั้ง [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+#### Linux (Ubuntu)
+
+ติดตั้ง `Docker Engine` และ `Docker Compose Plugin` ตามคู่มือของ Docker
+
+หลังติดตั้งเสร็จ ให้ตรวจสอบ:
+
+```bash
+git --version
+docker --version
+docker compose version
+```
+
 ## จุดเด่น
 
 - `Generate ตาราง` ด้วย greedy + backtracking + random restarts
@@ -34,13 +96,90 @@
 
 ## เริ่มต้นใช้งาน
 
-### 1. ติดตั้ง
+### แบบที่แนะนำ: ใช้งานผ่าน Docker
+
+#### 1. Clone โปรเจกต์
+
+```bash
+git clone https://github.com/codex074/Scheduler.git
+cd Scheduler
+```
+
+#### 2. สร้างและเปิด container
+
+```bash
+docker compose up --build
+```
+
+ระบบจะทำสิ่งต่อไปนี้ให้อัตโนมัติ:
+
+- build image
+- ติดตั้ง dependencies
+- build Next.js app
+- รัน Prisma migrations
+- สร้างฐานข้อมูล SQLite ถ้ายังไม่มี
+- เปิดแอปที่ port `3000`
+
+#### 3. เข้าใช้งาน
+
+เปิด [http://localhost:3000](http://localhost:3000)
+
+#### 4. รันแบบ background
+
+```bash
+docker compose up --build -d
+```
+
+#### 5. ดู log
+
+```bash
+docker compose logs -f
+```
+
+#### 6. หยุดการทำงาน
+
+```bash
+docker compose down
+```
+
+#### 7. ลบข้อมูลทั้งหมดและเริ่มใหม่
+
+คำสั่งนี้จะลบฐานข้อมูลที่เก็บอยู่ใน Docker volume ด้วย
+
+```bash
+docker compose down -v
+```
+
+#### 8. อัปเดตโปรเจกต์หลัง pull โค้ดใหม่
+
+```bash
+git pull
+docker compose up --build -d
+```
+
+### ตำแหน่งข้อมูลเมื่อใช้ Docker
+
+- ข้อมูล SQLite จะถูกเก็บใน Docker volume ชื่อ `scheduler_data`
+- ต่อให้ลบ container แล้วสร้างใหม่ ข้อมูลจะยังอยู่ ถ้าไม่สั่ง `docker compose down -v`
+
+### ไฟล์ Docker ที่เพิ่มในโปรเจกต์
+
+| ไฟล์ | หน้าที่ |
+| --- | --- |
+| `Dockerfile` | สร้าง image สำหรับ production use |
+| `docker-compose.yml` | สั่ง build + run พร้อม volume และ port |
+| `docker/entrypoint.sh` | รัน migrations ก่อน start app |
+| `.dockerignore` | กันไฟล์ไม่จำเป็นไม่ให้ถูก copy เข้า image |
+
+### ทางเลือก: ใช้งานแบบ local ไม่ใช้ Docker
+
+#### 1. ติดตั้ง
 
 ```bash
 npm install
 ```
 
-### 2. ตั้งค่าฐานข้อมูล
+#### 2. ตั้งค่าฐานข้อมูล
 
 ไฟล์ `.env` ใช้ค่าเริ่มต้นแบบ SQLite อยู่แล้ว:
 
@@ -50,19 +189,21 @@ DATABASE_URL="file:./dev.db"
 
 ถ้าใช้งานตามค่าเริ่มต้น ไม่ต้องแก้เพิ่ม
 
-### 3. สร้างฐานข้อมูล
+#### 3. สร้างฐานข้อมูล
 
 ```bash
 npm run db:migrate
 ```
 
-### 4. เปิดโปรเจกต์
+#### 4. เปิดโปรเจกต์
 
 ```bash
 npm run dev
 ```
 
 เปิดที่ [http://localhost:3000](http://localhost:3000)
+
+> ถ้าคุณต้องการเริ่มใช้งานให้เร็วที่สุด แนะนำ Docker มากกว่า เพราะไม่ต้องเซ็ต Node/Prisma/SQLite เอง
 
 ## ลำดับการใช้งานที่แนะนำ
 
@@ -309,6 +450,17 @@ npm run db:generate
 npm run db:studio
 ```
 
+## คำสั่ง Docker ที่ใช้บ่อย
+
+```bash
+docker compose up --build
+docker compose up --build -d
+docker compose logs -f
+docker compose down
+docker compose down -v
+docker compose ps
+```
+
 ## โครงสร้างโปรเจกต์
 
 ```text
@@ -342,6 +494,29 @@ npm test
 - การจัดตารางทั้งเดือน
 
 ## ปัญหาที่พบบ่อย
+
+### เปิด Docker แล้วเข้าเว็บไม่ได้
+
+ตรวจสอบว่า:
+
+- เครื่องมี Docker ทำงานอยู่จริง
+- port `3000` ไม่ถูกโปรแกรมอื่นใช้อยู่
+- ใช้คำสั่ง `docker compose logs -f` แล้วไม่มี error ตอน start
+
+### เปลี่ยนโค้ดแล้วหน้าเว็บยังไม่อัปเดต
+
+ถ้าใช้ Docker image แบบในโปรเจกต์นี้ ให้ rebuild ใหม่:
+
+```bash
+docker compose up --build -d
+```
+
+### อยากล้างข้อมูลแล้วเริ่มใหม่ทั้งหมด
+
+```bash
+docker compose down -v
+docker compose up --build
+```
 
 ### กด Generate แล้วไม่ได้
 
