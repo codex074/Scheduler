@@ -24,6 +24,7 @@ export interface Member {
   phaId: string;
   dateOfBirth: Date;
   pregnancyStatus: PregnancyStatus;
+  allowedShifts: ShiftType[] | null; // null = use auto rules; array = manual override
 }
 
 export interface Slot {

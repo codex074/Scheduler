@@ -12,6 +12,7 @@ function mkMember(age: number, pregnancy: Member['pregnancyStatus'] = null): Mem
     phaId: 'p',
     dateOfBirth: dob,
     pregnancyStatus: pregnancy,
+    allowedShifts: null,
   };
 }
 
@@ -81,7 +82,7 @@ describe('getAllowedShifts (HC5)', () => {
 
   it('age boundary: turning 33 on ref date => 33-44 group', () => {
     const dob = new Date(Date.UTC(2026 - 33, 3, 1));
-    const m: Member = { id: 'm', nickname: 'x', phaId: 'p', dateOfBirth: dob, pregnancyStatus: null };
+    const m: Member = { id: 'm', nickname: 'x', phaId: 'p', dateOfBirth: dob, pregnancyStatus: null, allowedShifts: null };
     const allowed = getAllowedShifts(m, ref);
     expect(allowed.has('night')).toBe(true);
   });

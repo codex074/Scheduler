@@ -10,11 +10,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (body.dateOfBirth !== undefined) data.dateOfBirth = new Date(body.dateOfBirth);
   if (body.pregnancyStatus !== undefined) data.pregnancyStatus = body.pregnancyStatus || null;
   if (body.isActive !== undefined) data.isActive = !!body.isActive;
+  if (body.allowedShifts !== undefined) {
+    data.allowedShifts = body.allowedShifts === null ? null : JSON.stringify(body.allowedShifts);
+  }
   try {
-    const member = await prisma.teamMember.update({ where: { id }, data });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const member = await prisma.teamMember.update({ where: { id }, data: data as any });
     return NextResponse.json(member);
   } catch (err) {
-    return NextResponse.json({ error: 'แก้ไขไม่สำเร็จ', detail: String(err) }, { status: 400 });
+    const detail = String(err);
+    const isDuplicate = detail.includes('Unique') || detail.includes('unique');
+    return NextResponse.json(
+      { error: isDuplicate ? 'ชื่อเล่นหรือรหัสนี้มีอยู่ในระบบแล้ว' : 'แก้ไขไม่สำเร็จ', detail },
+      { status: 400 },
+    );
   }
 }
 

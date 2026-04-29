@@ -5,7 +5,7 @@ import { Button, Card, Modal, Badge, Select, Label } from '@/components/ui';
 import { ScheduleGrid, getEligibleShiftsForCell, type GridAssignment, type GridMember } from '@/components/ScheduleGrid';
 import { SummaryPanel } from '@/components/SummaryPanel';
 import { THAI_MONTH_NAMES, SHIFT_SYMBOLS } from '@/lib/constants';
-import { Sparkles, Download, Lock, RefreshCw, Trash2 } from 'lucide-react';
+import { Sparkles, Download, Lock, Unlock, RefreshCw, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ShiftType } from '@/lib/scheduler/types';
 
@@ -42,6 +42,7 @@ export default function ScheduleDetailPage({ params }: PageProps) {
   });
 
   const exists = schedule && !('error' in schedule);
+  const isFinalized = exists && schedule.status === 'finalized';
   const assignments: GridAssignment[] = exists ? schedule.assignments.map((a) => ({
     id: a.id, memberId: a.memberId, date: a.date, shiftType: a.shiftType,
   })) : [];
@@ -50,6 +51,8 @@ export default function ScheduleDetailPage({ params }: PageProps) {
 
   const [selectedCell, setSelectedCell] = useState<{ memberId: string; day: number; current: GridAssignment[] } | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [showConfirmSave, setShowConfirmSave] = useState(false);
+  const [showConfirmUnlock, setShowConfirmUnlock] = useState(false);
 
   const generate = useMutation({
     mutationFn: async () => {
@@ -68,16 +71,19 @@ export default function ScheduleDetailPage({ params }: PageProps) {
     onSettled: () => setGenerating(false),
   });
 
-  const finalize = useMutation({
-    mutationFn: async () =>
+  const setStatus = useMutation({
+    mutationFn: async (status: 'finalized' | 'draft') =>
       fetch(`/api/schedules/${year}/${month}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'finalized' }),
+        body: JSON.stringify({ status }),
       }),
-    onSuccess: () => {
+    onSuccess: (_, status) => {
       qc.invalidateQueries({ queryKey: ['schedule', year, month] });
-      toast.success('ปิดตารางแล้ว');
+      qc.invalidateQueries({ queryKey: ['schedules'] });
+      qc.invalidateQueries({ queryKey: ['history'] });
+      if (status === 'finalized') toast.success('บันทึกยืนยันตารางแล้ว — ตารางนี้จะปรากฏในประวัติ');
+      else toast.info('ยกเลิกการยืนยันแล้ว — สามารถแก้ไขตารางได้อีกครั้ง');
     },
   });
 
@@ -107,17 +113,15 @@ export default function ScheduleDetailPage({ params }: PageProps) {
   });
 
   function handleCellClick(memberId: string, day: number, current: GridAssignment[]) {
-    if (exists && schedule.status === 'finalized') {
-      toast.info('ตารางถูกปิดแล้ว — ปลดล็อกเพื่อแก้ไข');
+    if (isFinalized) {
+      toast.info('ตารางถูกยืนยันแล้ว — กดปลดล็อกเพื่อแก้ไข');
       return;
     }
     setSelectedCell({ memberId, day, current });
   }
 
   const selectedMember = selectedCell ? members.find((m) => m.id === selectedCell.memberId) : null;
-  const selectedDate = selectedCell
-    ? new Date(Date.UTC(year, month - 1, selectedCell.day))
-    : null;
+  const selectedDate = selectedCell ? new Date(Date.UTC(year, month - 1, selectedCell.day)) : null;
   const isSelectedHoliday = selectedDate
     ? selectedDate.getUTCDay() === 0 || selectedDate.getUTCDay() === 6 ||
       publicHolidayISODates.includes(selectedDate.toISOString().slice(0, 10))
@@ -126,8 +130,11 @@ export default function ScheduleDetailPage({ params }: PageProps) {
     ? getEligibleShiftsForCell(selectedMember, selectedDate, isSelectedHoliday)
     : [];
 
+  const activeMembers = members.filter((m) => m.isActive !== false);
+
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">
@@ -135,31 +142,51 @@ export default function ScheduleDetailPage({ params }: PageProps) {
           </h1>
           <div className="mt-1 flex items-center gap-2">
             {exists ? (
-              <Badge color={schedule.status === 'finalized' ? 'green' : 'yellow'}>
-                {schedule.status === 'finalized' ? 'ปิดตารางแล้ว' : 'ฉบับร่าง'}
+              <Badge color={isFinalized ? 'green' : 'yellow'}>
+                {isFinalized ? 'ยืนยันแล้ว' : 'ฉบับร่าง'}
               </Badge>
             ) : (
               <Badge color="gray">ยังไม่ได้สร้าง</Badge>
             )}
+            {exists && (
+              <span className="text-xs text-slate-500">{assignments.length} เวร</span>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={exists ? 'secondary' : 'primary'}
-            onClick={() => generate.mutate()}
-            disabled={generating || members.length === 0}
-          >
-            {exists ? <RefreshCw className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-            {generating ? 'กำลังจัด…' : exists ? 'Generate ใหม่' : 'Generate ตาราง'}
-          </Button>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Generate */}
+          {!isFinalized && (
+            <Button
+              variant={exists ? 'secondary' : 'primary'}
+              onClick={() => generate.mutate()}
+              disabled={generating || activeMembers.length === 0}
+            >
+              {exists ? <RefreshCw className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+              {generating ? 'กำลังจัด…' : exists ? 'Generate ใหม่' : 'Generate ตาราง'}
+            </Button>
+          )}
+
           {exists && (
             <>
-              <a href={`/api/schedules/${year}/${month}/export`}>
-                <Button variant="secondary"><Download className="w-4 h-4" />Export Excel</Button>
+              {/* Export */}
+              <a href={`/api/schedules/${year}/${month}/export`} download>
+                <Button variant="secondary">
+                  <Download className="w-4 h-4" />
+                  Export Excel
+                </Button>
               </a>
-              {schedule.status !== 'finalized' && (
-                <Button variant="secondary" onClick={() => finalize.mutate()}>
-                  <Lock className="w-4 h-4" />ปิดตาราง
+
+              {/* Save / Unlock */}
+              {isFinalized ? (
+                <Button variant="secondary" onClick={() => setShowConfirmUnlock(true)}>
+                  <Unlock className="w-4 h-4" />
+                  ปลดล็อก
+                </Button>
+              ) : (
+                <Button onClick={() => setShowConfirmSave(true)}>
+                  <Save className="w-4 h-4" />
+                  บันทึกยืนยัน
                 </Button>
               )}
             </>
@@ -167,7 +194,15 @@ export default function ScheduleDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {members.length === 0 && (
+      {/* Finalized banner */}
+      {isFinalized && (
+        <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <Lock className="w-4 h-4 shrink-0" />
+          <span>ตารางนี้ยืนยันแล้ว — บันทึกอยู่ในประวัติตารางเวร · กด <strong>Export Excel</strong> เพื่อดาวน์โหลด หรือ <strong>ปลดล็อก</strong> เพื่อแก้ไข</span>
+        </div>
+      )}
+
+      {activeMembers.length === 0 && (
         <Card className="p-8 text-center text-slate-500">
           ยังไม่มีสมาชิกในระบบ — กรุณาเพิ่มทีมก่อนที่หน้า <a className="text-blue-600 underline" href="/team">ทีมงาน</a>
         </Card>
@@ -196,6 +231,7 @@ export default function ScheduleDetailPage({ params }: PageProps) {
         </div>
       )}
 
+      {/* Cell edit modal */}
       {selectedCell && selectedMember && selectedDate && (
         <Modal
           open
@@ -218,7 +254,6 @@ export default function ScheduleDetailPage({ params }: PageProps) {
                 </div>
               </div>
             )}
-
             <div>
               <Label>เพิ่มเวรใหม่ (เฉพาะที่กฎอนุญาต)</Label>
               {eligibleShifts.length === 0 ? (
@@ -241,6 +276,56 @@ export default function ScheduleDetailPage({ params }: PageProps) {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Confirm save modal */}
+      {showConfirmSave && (
+        <Modal open onClose={() => setShowConfirmSave(false)} title="บันทึกยืนยันตาราง">
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700">
+              ยืนยันการบันทึกตารางเวร <strong>{THAI_MONTH_NAMES[month - 1]} {year + 543}</strong>?
+            </p>
+            <p className="text-sm text-slate-500">
+              ตารางจะถูกปิดแก้ไข และบันทึกเข้าประวัติตารางเวร
+              สามารถกด &quot;ปลดล็อก&quot; เพื่อแก้ไขภายหลังได้
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="secondary" onClick={() => setShowConfirmSave(false)}>ยกเลิก</Button>
+              <Button
+                onClick={() => { setStatus.mutate('finalized'); setShowConfirmSave(false); }}
+                disabled={setStatus.isPending}
+              >
+                <Save className="w-4 h-4" />
+                ยืนยันบันทึก
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Confirm unlock modal */}
+      {showConfirmUnlock && (
+        <Modal open onClose={() => setShowConfirmUnlock(false)} title="ปลดล็อกตาราง">
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700">
+              ปลดล็อกตาราง <strong>{THAI_MONTH_NAMES[month - 1]} {year + 543}</strong>?
+            </p>
+            <p className="text-sm text-slate-500">
+              ตารางจะกลับเป็นฉบับร่าง และถูกนำออกจากประวัติจนกว่าจะยืนยันใหม่อีกครั้ง
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="secondary" onClick={() => setShowConfirmUnlock(false)}>ยกเลิก</Button>
+              <Button
+                variant="secondary"
+                onClick={() => { setStatus.mutate('draft'); setShowConfirmUnlock(false); }}
+                disabled={setStatus.isPending}
+              >
+                <Unlock className="w-4 h-4" />
+                ปลดล็อก
+              </Button>
             </div>
           </div>
         </Modal>

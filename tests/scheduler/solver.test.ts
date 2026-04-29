@@ -4,7 +4,7 @@ import type { Member } from '@/lib/scheduler/types';
 
 function mkMember(id: string, age: number, pregnancy: Member['pregnancyStatus'] = null): Member {
   const dob = new Date(Date.UTC(2026 - age, 5, 15));
-  return { id, nickname: id, phaId: id, dateOfBirth: dob, pregnancyStatus: pregnancy };
+  return { id, nickname: id, phaId: id, dateOfBirth: dob, pregnancyStatus: pregnancy, allowedShifts: null };
 }
 
 describe('generateSchedule (integration)', () => {

@@ -11,6 +11,7 @@ export interface GridMember {
   phaId: string;
   dateOfBirth: string;
   pregnancyStatus: string | null;
+  isActive?: boolean;
 }
 
 export interface GridAssignment {
@@ -159,6 +160,7 @@ export function getEligibleShiftsForCell(
       phaId: member.phaId,
       dateOfBirth: new Date(member.dateOfBirth),
       pregnancyStatus: (member.pregnancyStatus ?? null) as never,
+      allowedShifts: null,
     },
     date,
   );

@@ -35,6 +35,12 @@ const AGE_PERMS: Record<ReturnType<typeof getAgeGroup>, Record<ShiftCategory, bo
 export function getAllowedShifts(member: Member, refDate: Date): Set<ShiftType> {
   const allowed = new Set<ShiftType>();
 
+  // Step 0: manual override wins over all rules
+  if (member.allowedShifts !== null) {
+    for (const s of member.allowedShifts) allowed.add(s);
+    return allowed;
+  }
+
   // Step 1: pregnancy override
   if (member.pregnancyStatus) {
     const perms = PREGNANCY_PERMS[member.pregnancyStatus];

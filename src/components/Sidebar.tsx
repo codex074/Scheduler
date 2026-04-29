@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, CalendarDays, ClipboardList } from 'lucide-react';
+import { Home, Users, CalendarDays, ClipboardList, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -9,6 +9,7 @@ const NAV = [
   { href: '/team', label: 'ทีมงาน', icon: Users },
   { href: '/holidays', label: 'วันหยุด', icon: CalendarDays },
   { href: '/schedules', label: 'ตารางเวร', icon: ClipboardList },
+  { href: '/history', label: 'ประวัติ', icon: History },
 ];
 
 export function Sidebar() {

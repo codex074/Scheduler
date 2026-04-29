@@ -18,6 +18,7 @@ export async function POST(
     phaId: m.phaId,
     dateOfBirth: m.dateOfBirth,
     pregnancyStatus: (m.pregnancyStatus ?? null) as Member['pregnancyStatus'],
+    allowedShifts: m.allowedShifts ? (JSON.parse(m.allowedShifts) as Member['allowedShifts']) : null,
   }));
 
   const yearStart = new Date(Date.UTC(year, 0, 1));
